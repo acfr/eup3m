@@ -1,0 +1,18 @@
+FROM python:3.12.6-bookworm
+
+WORKDIR /home/experiments
+
+RUN pip install --upgrade pip
+
+# Install python packages
+RUN pip install matplotlib jupyter numpy scipy scikit-learn scikit-gstat pandas tqdm
+
+# Install text editor
+RUN apt-get update && apt-get install nano -y
+
+# Make default Jupyter Notebook port available outside this container
+EXPOSE 8888
+
+# Run Jupyter Notebook when the container launches
+# Can suppress this behaviour by appending /bin/bash to `docker run` command
+CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
