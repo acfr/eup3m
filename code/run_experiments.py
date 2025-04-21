@@ -11,7 +11,7 @@
 #    and performs rank analysis. It saves results to csv or pickle files and produces
 #    graphics that include blastholes grade visualisation, histograms and variograms,
 #    kappa-accuracy and interval tightness plots, model predicted mean and variance,
-#    as well as maps that depict uncertainty likelihood and signed distortion.
+#    as well as maps that depict the local consensus and signed distortion.
 #
 # Rio Tinto Centre
 # Faculty of Engineering
@@ -643,7 +643,7 @@ def analyse_models(inference_prefix, domain_id, specs={}, desc=""):
     spatial_mean_file = f"{figure_path}/spatial_mean-@-{domain_id}.pdf"
     spatial_stdev_file = f"{figure_path}/spatial_stdev-@-{domain_id}.pdf"
     signed_distortion_file = f"{figure_path}/uncertainty_signed_distortion-{domain_id}.pdf"
-    likelihood_file = f"{figure_path}/uncertainty_likelihood-{domain_id}.pdf"
+    local_consensus_file = f"{figure_path}/local_consensus-{domain_id}.pdf"
     x_star_file = f"{data_path}/blocks_to_estimate_tagged.csv"
     if specs.get('inference_type', 'future-bench-prediction') == 'in-situ-regression':
         x_star_file = f"{data_path}/blocks_insitu_tagged.csv"
@@ -952,6 +952,7 @@ def analyse_models(inference_prefix, domain_id, specs={}, desc=""):
             (candidates_s, candidates_L, candidates_K, candidates_A,
              candidates_P, candidates_G, candidates_W, candidates_T,
              candidates_invalid, df_a, df_s) = pickle.load(f)
+            df_s.rename(columns={'Likelihood': 'Consensus'}, inplace=True)
         stat_names = list(df_s.columns)
     else:
         # Investigate the sensitivity of kappa accuracy measure
@@ -961,7 +962,7 @@ def analyse_models(inference_prefix, domain_id, specs={}, desc=""):
             keys_a.append(f"Accuracy({xi})")
             candidates_A_slack[xi] = OrderedDict()
             for k in candidates_mu.keys():
-                s_scores = compute_model_likelihood(mu_0, candidates_mu[k], candidates_sigma[k])[1]
+                s_scores = compute_model_consensus(mu_0, candidates_mu[k], candidates_sigma[k])[1]
                 accuracy = compute_distribution_accuracy(p_values, None, s_scores, slack=xi)
                 candidates_A_slack[xi][k] = accuracy
      
@@ -971,7 +972,7 @@ def analyse_models(inference_prefix, domain_id, specs={}, desc=""):
         df_a = pd.DataFrame.from_dict(data_a, orient='index', columns=keys_a)
 
         # Compute uncertainty-based measures
-        # - s, L and K denote the signed scores, likelihood, and mean kappa proportions
+        # - s, L and K denote the signed scores, local consensus, and mean kappa proportions
         # - A, P, G, W, and T denote the accuracy, precision, goodness, width and tightness
         #   of the conditional distribution function from a given model
         candidates_s = OrderedDict()
@@ -986,7 +987,7 @@ def analyse_models(inference_prefix, domain_id, specs={}, desc=""):
         for k in candidates_mu.keys():
             d = compute_performance_statistics(mu_0, candidates_mu[k], candidates_sigma[k], slack=0.05)
             candidates_s[k] = d['s_scores']
-            candidates_L[k] = np.mean(d['likelihood'])
+            candidates_L[k] = np.mean(d['consensus'])
             candidates_K[k] = d['proportion']
             candidates_A[k] = d['accuracy']
             candidates_P[k] = d['precision']
@@ -998,7 +999,7 @@ def analyse_models(inference_prefix, domain_id, specs={}, desc=""):
         data = OrderedDict()
         stat_names = ['h(psChi2)', 'h(JS)', 'h(IOU)', 'h(EM)', 'h(rank)', 'RMSE',
                       'Variogram Ratios', 'Spatial Fidelity', '|s|_L', '|s|_U',
-                      'Likelihood', 'Accuracy(.05)', 'Precision', 'Goodness', 'Tightness']
+                      'Consensus', 'Accuracy(.05)', 'Precision', 'Goodness', 'Tightness']
         for k in candidates_mu.keys():
             s = np.abs(candidates_s[k])
             variogram_ratio = df_v[df_v.method==k]['p50(GroundTruth(blocks))'].values[0]
@@ -1115,7 +1116,7 @@ def analyse_models(inference_prefix, domain_id, specs={}, desc=""):
         plt.clf()
         plt.close()
 
-    # Visualise signed likelihood scores $s(\hat{\mu},\hat{\sigma}\mid\mu_0)$
+    # Visualise synchronicity scores $s(\hat{\mu},\hat{\sigma}\mid\mu_0)$
     cmapBlRd = create_inverted_colormap(gamma=2.5)
     fig = plt.figure(figsize=(12,15))
     print('Using s score to illustrate relative distortion')
@@ -1140,7 +1141,7 @@ def analyse_models(inference_prefix, domain_id, specs={}, desc=""):
 
     cmapBl = create_inverted_colormap(gamma=0.7, monochrome=True)
     fig = plt.figure(figsize=(12,15))
-    print('Using likelihood score to illustrate quality of probabilistic prediction')
+    print('Using consensus score to illustrate quality of probabilistic prediction')
     for i, k in enumerate(displayed_models):
         hide_x_axis = False if i >= len(displayed_models)-2 else True
         hide_y_axis = False if i%2==0 else True
@@ -1148,9 +1149,9 @@ def analyse_models(inference_prefix, domain_id, specs={}, desc=""):
         create_scatter_plot(
             df_domain_infer['X'].iloc[retain], df_domain_infer['Y'].iloc[retain],
             np.abs(candidates_s[k]), 0, +1, symbsiz=50, subplotargs=[4,2,i+1], palette=cmapBl,
-            cbtitle="likelihood", sharex=hide_x_axis, sharey=hide_y_axis, symbol='s',
-            graphtitle=r"Uncertainty Likelihood $l(\hat{\mu},\hat{\sigma}\mid\mu_0)$ for " + f"{k}")
-    plt.savefig(likelihood_file, bbox_inches='tight', pad_inches=0.05)
+            cbtitle="consensus", sharex=hide_x_axis, sharey=hide_y_axis, symbol='s',
+            graphtitle=r"Local consensus $l(\hat{\mu},\hat{\sigma}\mid\mu_0)$ for " + f"{k}")
+    plt.savefig(local_consensus_file, bbox_inches='tight', pad_inches=0.05)
     plt.clf()
     plt.close()
 

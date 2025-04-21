@@ -29,6 +29,7 @@ If users would prefer not to use Docker, then please refer to the
       .git repository is located at <font color="#cc0066">`${REPOS_PARENT_DIR}/eup3m`</font>, this
       will make the source tree available as `/home/experiments/eup3m` inside the container.
     - `--rm` ensures the container is automatically removed when it is terminated.
+    - `--user` sets user to something other than root
     - `/bin/bash` overwrites the default python command and runs a shell instead.
 - Running a Python script inside container
   - For instance, `cd eup3m/code/`

@@ -114,7 +114,7 @@ def _downsample_worker(xyz, npts, xyz_tree, v, complete_pmf,
     random_number_generator = np.random.RandomState(rand_state + process_idx)
 
     f = lambda x: np.array(np.percentile(x, np.linspace(0, 100, 11)))
-    target = f(values)
+    target = f(v)
 
     best_indices = None
     best_KL = np.inf
@@ -129,7 +129,7 @@ def _downsample_worker(xyz, npts, xyz_tree, v, complete_pmf,
         #- compute the relative entropy (this is equivalent to the KL divergence which
         #  measures the discrepancies between the sampled and complete data distribution)
         idx = _downsample(xyz, npts, xyz_tree, random_number_generator)
-        sample_pmf = _probability_mass_function(values[idx], lower_bound, upper_bound)
+        sample_pmf = _probability_mass_function(v[idx], lower_bound, upper_bound)
         kl = scipy.stats.entropy(sample_pmf, complete_pmf)
         if kl < best_KL:
             best_KL = kl

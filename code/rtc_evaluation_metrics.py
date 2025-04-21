@@ -9,7 +9,7 @@
 #      intersection over union) and Wasserstein earth-moving distance (based on
 #      solving a minimum cost transport problem)
 # C) Uncertainty-based measures:
-#    - Likelihood given validation measurements L = |s(mu_hat, sigma_hat | mu_0)|
+#    - Consensus given validation measurements L = |s(mu_hat, sigma_hat | mu_0)|
 #    - Quantify the accuracy, precision, goodness and tightness of model
 #      uncertainty estimates based on Deutsch-Goovaerts interpretations which
 #      consider the true value containment interval, expected and empirical
@@ -257,14 +257,14 @@ def compute_root_mean_squared_error(mu_0, mu_hat):
 #-----------------------------------------------------------
 # Methods relating to uncertainty / p-probability intervals
 #-----------------------------------------------------------
-def compute_signed_likelihood(mu_0, mu_hat, sigma_hat, omit_z_scores=True, eps=1e-6):
+def compute_synchronicity(mu_0, mu_hat, sigma_hat, omit_z_scores=True, eps=1e-6):
     """
     Assess how reasonable the cdf model parameters are given the ground truth
     :param mu_0: true mean (vector of m validation measurements)
     :param mu_hat: estimated mean, shape=(m,)
     :param sigma_hat: estimated standard deviation, shape=(m,)
     :return: signed scores "s" in [-1,1] where
-             magnitude |s| gives the likelihood,
+             magnitude |s| gives the local consensus,
              negative indicates over-estimation (mu_0 < mu_hat),
              positive indicates under-estimation (mu_hat < mu_0)
     """
@@ -277,9 +277,9 @@ def compute_signed_likelihood(mu_0, mu_hat, sigma_hat, omit_z_scores=True, eps=1
           - (1 - under_estimated) * norm.cdf(z_scores))
     return s if omit_z_scores else (s, z_scores)
 
-def compute_model_likelihood(mu_0, mu_hat, sigma_hat, n_sigma=None, alpha=None):
+def compute_model_consensus(mu_0, mu_hat, sigma_hat, n_sigma=None, alpha=None):
     """
-    Compute model likelihood L = |a(mu_hat, sigma_hat | mu_0)| using validation data.
+    Compute local consensus L = |a(mu_hat, sigma_hat | mu_0)| using validation data.
     Assess how reasonable the (mu_hat, sigma_hat) estimates are given the true values.
 
     Parameters
@@ -295,9 +295,9 @@ def compute_model_likelihood(mu_0, mu_hat, sigma_hat, n_sigma=None, alpha=None):
         alpha : list(float), typical values are 0.95, 0.99
             option to automatically deduce n_sigma for significance testing
     """
-    s_scores, z_scores = compute_signed_likelihood(
+    s_scores, z_scores = compute_synchronicity(
                          mu_0, mu_hat, sigma_hat, omit_z_scores=False)
-    likelihood = p_c = np.abs(s_scores)
+    consensus = p_c = np.abs(s_scores)
     # Compute tail statistics for various multipliers of sigma (m)
     if alpha is not None:
         n_sigma = norm.ppf(1 - (1 - np.array(alpha))/2, 0, 1)
@@ -312,9 +312,9 @@ def compute_model_likelihood(mu_0, mu_hat, sigma_hat, n_sigma=None, alpha=None):
         for m in n_sigma:
             t = 1 - 2 * (norm.cdf(m, 0, 1) - 0.5)
             tail_stats[m] = [m, t, sum(p_c <= t)/len(p_c)]
-        return likelihood, s_scores, z_scores, tail_stats
+        return consensus, s_scores, z_scores, tail_stats
     else:
-        return likelihood, s_scores, z_scores
+        return consensus, s_scores, z_scores
 
 def compute_kappa(s_scores, p, slack=0.):
     """
@@ -334,12 +334,11 @@ def compute_kappa(s_scores, p, slack=0.):
 
     Instead of sweeping over p, there's an easy way to test this. Since, there exists a
     critical value p* where z_0(j) lies just on the edge of [qL(j,p*), qU(j,p*)].
-    The `compute_model_likelihood` function serves this purpose, it converts each [mu_0(j),
+    The `compute_model_consensus` function serves this purpose, it converts each [mu_0(j),
     mu_hat(j), sigma_hat(j)] into a z-score that corresponds to qL(j,*) or qU(j,p*),
-    which gets mapped to a likelihood value |s*| = 1 - p*.
+    which gets mapped to a consensus value |s*| = 1 - p*.
     Since the interval grows with p, kappa_j(p) = 1 for all p >= p*, where p* = 1 - |s*|
     """
-    # think of `p` as the coverage probability (complementary to the likelihood)
     p_star = 1.0 - np.abs(s_scores)
     m = len(s_scores)
     kappa_bar = sum(p >= (1 - slack) * p_star) / m
@@ -348,7 +347,7 @@ def compute_kappa(s_scores, p, slack=0.):
 def compute_kappa_bar(s_scores, p_values, slack=0.):
     """
     Compute accuracy of the estimated distribution for various p
-    :param s_scores: signed scores produced by `compute_signed_likelihood`, shape=(m,)
+    :param s_scores: signed scores produced by `compute_synchronicity`, shape=(m,)
     :param p_values: a dense array of probability values from 0 to 1 (excluding 0 and 1)
                      for instance, np.r_[np.linspace(0,1,41)[1:-1], 0.9825, 0.99, 0.997]
     :param slack: slack variable (zero or a small positive value << 1)
@@ -363,7 +362,7 @@ def compute_kappa_mean_proportion(p_values, kappa_bar=None, s_scores=None, slack
     Compute mean proportion using kappa_bar based on the notion of p-probability intervals
     :param p_values: a dense array of probability values from 0 to 1 (excluding 0 and 1)
     :param kappa_bar: accuracy scores produced by `compute_kappa_bar` (optional)
-    :param s_scores: signed scores produced by `compute_signed_likelihood` (required if `kappa_bar` is missing)
+    :param s_scores: signed scores produced by `compute_synchronicity` (required if `kappa_bar` is missing)
     :param slack: slack variable (zero or a small positive value << 1).
     """
     if kappa_bar is None:
@@ -375,7 +374,7 @@ def compute_distribution_accuracy(p_values, kappa_bar=None, s_scores=None, slack
     Compute average accuracy of the estimated distribution
     :param p_values: a dense array of probability values from 0 to 1 (excluding 0 and 1)
     :param kappa_bar: accuracy scores produced by `compute_kappa_bar` (optional)
-    :param s_scores: signed scores produced by `compute_signed_likelihood` (required if `kappa_bar` is missing)
+    :param s_scores: signed scores produced by `compute_synchronicity` (required if `kappa_bar` is missing)
     :param slack: slack variable (zero or a small positive value << 1).
     """
     if kappa_bar is None:
@@ -389,7 +388,7 @@ def compute_uncertainty_precision(p_values, kappa_bar=None, s_scores=None):
     If p is uniformly spaced, then P = 1 - 2 * mean(indicator * (kappa_bar - p_values))
     :param p_values: a dense array of probability values from 0 to 1 (excluding 0 and 1)
     :param kappa_bar: accuracy scores produced by `compute_kappa_bar` (optional)
-    :param s_scores: signed scores produced by `compute_signed_likelihood` (required if `kappa_bar` is missing)
+    :param s_scores: signed scores produced by `compute_synchronicity` (required if `kappa_bar` is missing)
     """
     if kappa_bar is None:
         kappa_bar = compute_kappa_bar(s_scores, p_values)
@@ -403,11 +402,11 @@ def compute_uncertainty_goodness_statistic(p_values, kappa_bar=None, s_scores=No
     Compute C.V. Deutsch's goodness statistic
         G = 1 - integral_{0}^{1} [3*indicator(p) - 2] [kappa_bar(p) - p] dp
     using either kappa_bar(p) := the estimated proportions of coverage by the model's prediction
-    uncertainty where the interval is parameterised by p, OR the signed likelihood (s_scores).
+    uncertainty where the interval is parameterised by p, OR synchronicity (s_scores).
     Unlike accuracy and precision, this takes into account instances where kappa_bar(p) < p.
     :param p_values: a dense array of probability values from 0 to 1 (excluding 0 and 1)
     :param kappa_bar: accuracy scores produced by `compute_kappa_bar` (optional)
-    :param s_scores: signed scores produced by `compute_signed_likelihood` (required if `kappa_bar` is missing)
+    :param s_scores: signed scores produced by `compute_synchronicity` (required if `kappa_bar` is missing)
     """
     if kappa_bar is None:
         kappa_bar = compute_kappa_bar(s_scores, p_values)
@@ -421,7 +420,7 @@ def mean_prediction_uncertainty_width(sigma_hat, s_scores, p):
     """
     Compute average width of prediction uncertainty intervals for probability p (Goovaerts, 2001)
     :param sigma_hat: estimated standard deviation, shape=(m,)
-    :param s_scores: signed scores produced by `compute_signed_likelihood`, shape=(m,)
+    :param s_scores: signed scores produced by `compute_synchronicity`, shape=(m,)
     :param p: a probability value
     """
     #warnings.filterwarnings("error")
@@ -443,7 +442,7 @@ def compute_width_bar(sigma_hat, s_scores, p_values):
     """
     Compute average width of prediction uncertainty intervals for various p.
     :param sigma_hat: estimated standard deviation, shape=(m,)
-    :param s_scores: signed scores produced by `compute_signed_likelihood`, shape=(m,)
+    :param s_scores: signed scores produced by `compute_synchronicity`, shape=(m,)
     :param p_values: a dense array of probability values from 0 to 1 (excluding 0 and 1)
     """
     w_bar_p = np.zeros(len(p_values))
@@ -455,7 +454,7 @@ def compute_uncertainty_tightness_statistic(p_values, s_scores, mu_0, sigma_hat)
     """
     Compute tightness of uncertainty interval over p
     :param p_values: a dense array of probability values from 0 to 1 (excluding 0 and 1)
-    :param s_scores: signed scores produced by `compute_signed_likelihood`, shape=(m,)
+    :param s_scores: signed scores produced by `compute_synchronicity`, shape=(m,)
     :param mu_0: true mean (vector of m validation measurements)
     :param sigma_hat: estimated standard deviation, shape=(m,)
     """
@@ -471,7 +470,7 @@ def compute_uncertainty_tightness_statistic(p_values, s_scores, mu_0, sigma_hat)
 def compute_performance_statistics(mu_0_in, mu_hat_in, sigma_hat_in, p_values=None, slack=0.):
     """
     Compute various performance statistics for a probabilistic model in one go
-    :return: dict with keys ['s_scores', 'likelihood', 'accuracy', 'precision', 'goodness', 'tightness']
+    :return: dict with keys ['s_scores', 'consensus', 'accuracy', 'precision', 'goodness', 'tightness']
     """
     # handle invalid/missing values
     retain = np.isfinite(mu_0_in + mu_hat_in + sigma_hat_in)
@@ -485,7 +484,7 @@ def compute_performance_statistics(mu_0_in, mu_hat_in, sigma_hat_in, p_values=No
         segment2 = np.linspace(0.98,1,12)[:-1]
         p_values = np.r_[segment1, segment2]
 
-    likelihood, s_scores = compute_model_likelihood(mu_0, mu_hat, sigma_hat)[:2]
+    consensus, s_scores = compute_model_consensus(mu_0, mu_hat, sigma_hat)[:2]
     kappa_bar = compute_kappa_bar(s_scores, p_values)
     proportion = compute_kappa_mean_proportion(p_values, None, s_scores, slack)
     accuracy = compute_distribution_accuracy(p_values, None, s_scores, slack)
@@ -494,7 +493,7 @@ def compute_performance_statistics(mu_0_in, mu_hat_in, sigma_hat_in, p_values=No
     width = compute_width_bar(sigma_hat, s_scores, p_values)
     tightness = compute_uncertainty_tightness_statistic(p_values, s_scores, mu_0, sigma_hat)
     return {'s_scores': s_scores,
-            'likelihood': likelihood,
+            'consensus': consensus,
             'proportion': proportion,
             'accuracy': accuracy,
             'precision': precision,

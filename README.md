@@ -8,7 +8,7 @@ The University of Sydney, NSW 2006 Australia<br>
 ## Themes
 - Probabilistic models, uncertainty assessment, predictive performance, systematic evaluation
 - Uncertainty-based measures, confidence interval, significance testing
-- FLAGSHIP statistics: fidelity, likelihood, distribution accuracy, goodness, synchronicity, histogram distances, interval tightness, precision
+- FLAGSHIP statistics: fidelity, local consensus, distribution accuracy, goodness, synchronicity, histogram distances, interval tightness, precision
 - Kriging, Gaussian process, sequential Gaussian simulation (SGS), GP spatially correlated random field (CRF)
 - Porphyry copper deposit, grade estimation, in-situ regression, future-bench prediction, 3D geological modelling.
 
@@ -27,7 +27,7 @@ The University of Sydney, NSW 2006 Australia<br>
 
 
 ## Overview
-This repository provides an open-source implementation of the methods described in <a href="#cite:gmd">(Leung, Lowe and Melkumyan, 2024)</a>. The python code serves a dual purpose: it may be used to (a) build models and/or (b) evaluate model performance. As illustration, the picture below shows a comparison between two probabilistic models. One aspect it enables is the visualisation of the synchronicity measure (which relates to model likelihood) as a local distortion map. The technical details are described in the referenced paper, however, it is worth emphasizing an essential feature that defines probabilistic models.
+This repository provides an open-source implementation of the methods described in <a href="#cite:gmd">(Leung, Lowe and Melkumyan, 2024)</a>. The python code serves a dual purpose: it may be used to (a) build models and/or (b) evaluate model performance. As illustration, the picture below shows a comparison between two probabilistic models. One aspect it enables is the visualisation of the synchronicity measure (which indicates the consensus between the model prediction and groundtruth) as a local distortion map. The technical details are described in the referenced paper, however, it is worth emphasizing an essential feature that defines probabilistic models.
 
 Probabilistic models view the modelled attribute (for example, the concentration of copper in a porphyry deposit) as a random process and uses a predictive distribution (e.g. providing the posterior mean and standard deviation as an estimate rather than a single value) to describe the attribute at an unobserved location. This viewpoint differs funadmentally from deterministic models and it is depicted at the bottom half of the image below.
 
@@ -52,7 +52,7 @@ The implemented measures focus on 1) global accuracy, 2) local correlation and 3
   - Variogram ratios and
   - Spatial fidelity (F)
 - Uncertainty statistics for the predictive distributions based on notion of 
-  - Synchronicity (S) and likelihood (L) with respect to the groundtruth
+  - Synchronicity (S) and local consensus (L) with respect to the groundtruth
   - Deutsch's accuracy (A), goodness (G), interval tightness (I) and precision (P) statistics.
 
 Collectively, the recommended statistics (see <a href="#cite:gmd">paper</a> for discussion) are abbreviated as the FLAGSHIP statistics.
