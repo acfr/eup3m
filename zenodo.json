@@ -1,0 +1,31 @@
+{
+  "access_right": "open",
+  "creators": [
+    {
+      "name": "Leung, Raymond",
+      "orcid": "0000-0002-5088-1593",
+      "affiliations": "University of Sydney",
+      "type": "ProjectMember"
+    },
+    {
+      "name": "Lowe, Alexander",
+      "orcid": "0000-0002-8629-2061",
+      "affiliations": "University of Sydney",
+      "type": "ProjectMember"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "Melkumyan, Arman",
+      "orcid": "0000-0001-9211-4141",
+      "affiliations": "University of Sydney",
+      "type": "Researcher"
+    }
+  ],
+  "title": "acfr/eup3m: Evaluating the Uncertainty and Predictive Performance of Probabilistic Models - EUP3M v1.0.1",
+  "version": "1.0.1",
+  "description": "<h3>Features</h3>\n<ul>\n<li>This research repository demonstrates concepts in probabilistic prediction and model validation particularly in relation to ore grade estimation in mineral deposits.</li>\n<li>The main components enable model construction and performance evaluation</li>\n<li>Modelling approaches include kriging and Gaussian process, with/without sequential and correlated random field simulations</li>\n<li>Statistical analysis focuses on global accuracy, spatial fidelity and uncertainty aspects of predictive distributions</li>\n</ul>\n<h3>Changes</h3>\n<ul>\n<li>Renamed attributes consistent with the description in the updated <code>docs/background.pdf</code> document</li>\n<li>Fixed bug in <code>_downsample_worker</code></li>\n</ul>",
+  "license": {
+    "id": "bsd-3-clause"
+  }
+}
